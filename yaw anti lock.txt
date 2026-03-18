@@ -1,0 +1,53 @@
+
+local Settings = {
+    -- 1. Nửa thân trên (Upper Body)
+    UpperPitch = 270,
+    BaseYaw = 0,
+    SwayRange = 45,
+    SwaySpeed = 3,
+    ThirdPerson = false,
+    CameraDistance = 10,
+    Jitter = 0
+}
+
+-- [[ LOGIC THỰC THI ]] --
+local RunService = game:GetService("RunService")
+local player = game:GetService("Players").LocalPlayer
+local timeActive = 0
+
+RunService.PostSimulation:Connect(function(dt)
+    local char = player.Character
+    if not char then return end
+    
+    local lowerTorso = char:FindFirstChild("LowerTorso")
+    local upperTorso = char:FindFirstChild("UpperTorso")
+    if not lowerTorso or not upperTorso then return end
+
+    local rootJoint = lowerTorso:FindFirstChild("Root")
+    local waist = upperTorso:FindFirstChild("Waist")
+    
+    -- --- PHẦN 1: ÉP GÓC NHÌN THỨ BA (THIRD PERSON LOOP) ---
+    if Settings.ThirdPerson then
+        player.CameraMode = Enum.CameraMode.Classic -- Tắt chế độ khóa tâm LockFirstPerson
+        player.CameraMaxZoomDistance = Settings.CameraDistance
+        player.CameraMinZoomDistance = Settings.CameraDistance
+    else
+        -- Trả lại mặc định nếu tắt setting
+        player.CameraMaxZoomDistance = 100
+        player.CameraMinZoomDistance = 0.5
+    end
+
+    -- --- PHẦN 2: CHUYỂN ĐỘNG NHÂN VẬT ---
+    if rootJoint and waist then
+        timeActive = timeActive + dt
+        local swayAngle = math.sin(timeActive * Settings.SwaySpeed) * Settings.SwayRange
+        local jitterVal = math.random(-Settings.Jitter, Settings.Jitter)
+        local finalBodyYaw = math.rad(Settings.BaseYaw + swayAngle + jitterVal)
+        
+        -- Xoay cả người
+        rootJoint.C0 = CFrame.new(0, 0, 0) * CFrame.Angles(0, finalBodyYaw, 0)
+
+        -- Khóa thân trên cúi 270 độ
+        waist.C0 = CFrame.new(waist.C0.Position) * CFrame.Angles(math.rad(Settings.UpperPitch), 0, 0)
+    end
+end)
